@@ -347,8 +347,8 @@ def main():
     for epoch in range(args.start_epoch, args.epochs):
         tic = time.time()
         train(epoch)
-        if epoch % 10 == 0:  # or epoch == args.epochs-1:
-            validate(epoch)
+        # if epoch % 10 == 0:  # or epoch == args.epochs-1:
+        validate(epoch)
         elapsed = time.time() - tic
         print(f'Epoch: {epoch}, Time cost: {elapsed}')
 
