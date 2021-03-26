@@ -9,8 +9,8 @@ import torch.nn as nn
 
 from ..nn import Encoding, View, Normalize
 from .backbone import resnet50s, resnet101s, resnet152s
-__all__ = ['getseten']
 
+__all__ = ['getseten']
 
 
 class SELayer(nn.Module):
@@ -34,6 +34,7 @@ class SELayer(nn.Module):
 class Net(nn.Module):
     def __init__(self, nclass, backbone='resnet50'):
         super(Net, self).__init__()
+        self.backbone = backbone
         if self.backbone == 'resnet50':
             self.pretrained = resnet50s(pretrained=True, dilated=False)
         elif self.backbone == 'resnet101':
@@ -43,10 +44,10 @@ class Net(nn.Module):
         else:
             raise RuntimeError('unknown backbone: {}'.format(self.backbone))
 
-        n_codes = 64
         n_codes1 = 8
         n_codes2 = 16
         n_codes3 = 32
+        n_codes4 = 64
 
         # 添加vlad模块
         self.dim = 128
@@ -56,17 +57,17 @@ class Net(nn.Module):
             nn.Conv2d(2048, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            Encoding(D=128, K=n_codes),
-            View(-1, 128 * n_codes),
+            Encoding(D=128, K=n_codes1),
+            View(-1, 128 * n_codes1),
             Normalize(),
-            nn.Linear(128 * n_codes, 512),
+            nn.Linear(128 * n_codes1, 512),
         )
 
         self.head2 = nn.Sequential(
             nn.Conv2d(2048, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            Encoding(D=128, K=n_codes),
+            Encoding(D=128, K=n_codes2),
             View(-1, 128 * n_codes2),
             Normalize(),
             nn.Linear(128 * n_codes2, 512),
@@ -76,7 +77,7 @@ class Net(nn.Module):
             nn.Conv2d(2048, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            Encoding(D=128, K=n_codes),
+            Encoding(D=128, K=n_codes3),
             View(-1, 128 * n_codes3),
             Normalize(),
             nn.Linear(128 * n_codes3, 512),
@@ -86,15 +87,13 @@ class Net(nn.Module):
             nn.Conv2d(2048, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            Encoding(D=128, K=n_codes),
-            View(-1, 128 * n_codes1),
+            Encoding(D=128, K=n_codes4),
+            View(-1, 128 * n_codes4),
             Normalize(),
-            nn.Linear(128 * n_codes3, 512),
+            nn.Linear(128 * n_codes4, 512),
         )
 
         self.classifier = nn.Linear(2048, nclass)
-
-
 
     def forward(self, x):
         if isinstance(x, Variable):
@@ -107,20 +106,17 @@ class Net(nn.Module):
         else:
             raise RuntimeError('unknown input type: ', type(x))
 
+        x = self.pretrained.conv1(x)
+        x = self.pretrained.bn1(x)
+        x = self.pretrained.relu(x)
+        x = self.pretrained.maxpool(x)
 
+        x = self.pretrained.layer1(x)
+        x = self.pretrained.layer2(x)
+        x = self.pretrained.layer3(x)
+        x = self.pretrained.layer4(x)
 
-        x = self.resnest50.conv1(x)
-        x = self.resnest50.bn1(x)
-        x = self.resnest50.relu(x)
-        x = self.resnest50.maxpool(x)
-
-        x = self.resnest50.layer1(x)
-        x = self.resnest50.layer2(x)
-        x = self.resnest50.layer3(x)
-        x = self.resnest50.layer4(x)
-
-
-        x1 = self.head(x)
+        x1 = self.head1(x)
         x2 = self.head2(x)
         x3 = self.head3(x)
         x4 = self.head4(x)
@@ -129,9 +125,101 @@ class Net(nn.Module):
         return self.classifier(x)
 
 
+class Net_sum(nn.Module):
+    def __init__(self, nclass, backbone='resnet50'):
+        super(Net_sum, self).__init__()
+        self.backbone = backbone
+        if self.backbone == 'resnet50':
+            self.pretrained = resnet50s(pretrained=True, dilated=False)
+        elif self.backbone == 'resnet101':
+            self.pretrained = resnet101s(pretrained=True, dilated=False)
+        elif self.backbone == 'resnet152':
+            self.pretrained = resnet152s(pretrained=True, dilated=False)
+        else:
+            raise RuntimeError('unknown backbone: {}'.format(self.backbone))
+
+        n_codes1 = 8
+        n_codes2 = 16
+        n_codes3 = 32
+        n_codes4 = 64
+
+        # 添加vlad模块
+        self.dim = 128
+        self.alpha = 1.0
+
+        self.head1 = nn.Sequential(
+            nn.Conv2d(2048, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            Encoding(D=128, K=n_codes1),
+            View(-1, 128 * n_codes1),
+            Normalize(),
+            nn.Linear(128 * n_codes1, 512),
+        )
+
+        self.head2 = nn.Sequential(
+            nn.Conv2d(2048, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            Encoding(D=128, K=n_codes2),
+            View(-1, 128 * n_codes2),
+            Normalize(),
+            nn.Linear(128 * n_codes2, 512),
+        )
+
+        self.head3 = nn.Sequential(
+            nn.Conv2d(2048, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            Encoding(D=128, K=n_codes3),
+            View(-1, 128 * n_codes3),
+            Normalize(),
+            nn.Linear(128 * n_codes3, 512),
+        )
+
+        self.head4 = nn.Sequential(
+            nn.Conv2d(2048, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            Encoding(D=128, K=n_codes4),
+            View(-1, 128 * n_codes4),
+            Normalize(),
+            nn.Linear(128 * n_codes4, 512),
+        )
+
+        self.classifier = nn.Linear(512, nclass)
+
+    def forward(self, x):
+        if isinstance(x, Variable):
+            _, _, h, w = x.size()
+        elif isinstance(x, tuple) or isinstance(x, list):
+            var_input = x
+            while not isinstance(var_input, Variable):
+                var_input = var_input[0]
+            _, _, h, w = var_input.size()
+        else:
+            raise RuntimeError('unknown input type: ', type(x))
+
+        x = self.pretrained.conv1(x)
+        x = self.pretrained.bn1(x)
+        x = self.pretrained.relu(x)
+        x = self.pretrained.maxpool(x)
+
+        x = self.pretrained.layer1(x)
+        x = self.pretrained.layer2(x)
+        x = self.pretrained.layer3(x)
+        x = self.pretrained.layer4(x)
+
+        x1 = self.head1(x)
+        x2 = self.head2(x)
+        x3 = self.head3(x)
+        x4 = self.head4(x)
+
+        x = x1 + x2 + x3 + x4
+        return self.classifier(x)
 
 
-def getseten(nclass,backbone):
-    net = Net(nclass,backbone)
+def getseten(nclass, backbone):
+    # net = Net(nclass, backbone)
+    net = Net_sum(nclass, backbone)
     return net
-
