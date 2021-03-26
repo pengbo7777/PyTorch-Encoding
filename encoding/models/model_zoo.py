@@ -29,6 +29,8 @@ models = {
     'wideresnet50': wideresnet50,
     # deepten paper
     'deepten_resnet50_minc': get_deepten_resnet50_minc,
+    'seten': get_seten,
+    'deepten_triplet':get_deepten_triplet,
     # segmentation resnet models
     'encnet_resnet101s_coco': get_encnet_resnet101_coco,
     'fcn_resnet50s_pcontext': get_fcn_resnet50_pcontext,
@@ -52,6 +54,7 @@ models = {
 }
 
 model_list = list(models.keys())
+
 
 def get_model(name, **kwargs):
     """Returns a pre-defined model by name

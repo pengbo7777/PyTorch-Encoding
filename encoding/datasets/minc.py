@@ -14,21 +14,25 @@ from PIL import Image
 import torch
 import torch.utils.data as data
 
+
 class MINCDataset(data.Dataset):
     NUM_CLASS = 23
-    def __init__(self, root=os.path.expanduser('~/.encoding/data/'),
+
+    def __init__(self, root='/workspace/encoding/data',
                  train=True, transform=None, download=None):
-        split='train' if train == True else 'val'
-        root = os.path.join(root, 'minc-2500')
+        split = 'train' if train == True else 'val'
+        print("hahhahahahaah")
+        root = "/workspace/encoding/data" + '/minc-2500'
+        print(root)
         self.transform = transform
         classes, class_to_idx = find_classes(root + '/images')
-        if split=='train':
+        if split == 'train':
             filename = os.path.join(root, 'labels/train1.txt')
         else:
             filename = os.path.join(root, 'labels/test1.txt')
 
-        self.images, self.labels = make_dataset(filename, root, 
-            class_to_idx)
+        self.images, self.labels = make_dataset(filename, root,
+                                                class_to_idx)
         assert (len(self.images) == len(self.labels))
 
     def __getitem__(self, index):
@@ -41,6 +45,7 @@ class MINCDataset(data.Dataset):
 
     def __len__(self):
         return len(self.images)
+
 
 def find_classes(dir):
     classes = [d for d in os.listdir(dir) if os.path.isdir(os.path.join(dir, d))]
@@ -62,4 +67,3 @@ def make_dataset(filename, datadir, class_to_idx):
             labels.append(label)
 
     return images, labels
-

@@ -1,5 +1,7 @@
 # baseline
-python train_dist.py --dataset imagenet --model resnet50 --lr-scheduler cos --epochs 120 --checkname resnet50_check --lr 0.025 --batch-size 64
+CUDA_VISIBLE_DEVICES=0,1,2,3 python train.py --dataset minc --model deepten_resnet50_minc --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 256
+
+python train.py --dataset minc --model deepten_resnet50_minc --lr-scheduler cos --epochs 120 --checkname resnet50_check --lr 0.025 --batch-size 64 --gpu 0,1,2,3
 
 # rectify
 python train_dist.py --dataset imagenet --model resnet50 --lr-scheduler cos --epochs 120 --checkname resnet50_rt --lr 0.1 --batch-size 256 --rectify
@@ -30,3 +32,21 @@ python train_dist.py --dataset imagenet --model resnet50 --lr-scheduler cos --ep
 
 # resnest50
 python train_dist.py --dataset imagenet --model resnest50 --lr-scheduler cos --epochs 270 --checkname resnest50_rt_bots --lr 0.1 --batch-size 256 --label-smoothing 0.1 --mixup 0.2  --last-gamma --no-bn-wd --warmup-epochs 5 --dropblock-prob 0.1 --rectify
+
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 nohup python train.py --dataset minc --model deepten_resnet50_minc --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.025 --batch-size 256 >deepten03091950.out 2>&1 &
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 nohup python train.py --dataset minc --model deepten_resnet50_minc --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 256 >03111747.out 2>&1 &
+
+CUDA_VISIBLE_DEVICES=0,1 nohup python train.py --dataset minc --model deepten_resnet50_minc --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 64 > 03151747.out 2>&1 &
+
+ CUDA_VISIBLE_DEVICES=2,3  python train.py --dataset minc --model seten --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 64 --crop 352 > 03161933_deepten_crop352_valid1.out &
+
+
+CUDA_VISIBLE_DEVICES=0,1 nohup python train.py --dataset minc --model seten --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 64 --crop 352 > 03181212_seten_crop352_valid1.out &
+
+
+CUDA_VISIBLE_DEVICES=0,1 nohup python /workspace/experiments/recognition/train_triple.py --dataset minc --model deepten_triplet --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.025 --batch-size 64  > /workspace/encoding/data/0325minc_triplet_crop224_valid1.out 2>&1 &
+CUDA_VISIBLE_DEVICES=0,1 python train_triple.py --dataset minc --model deepten_triplet --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.025 --batch-size 128

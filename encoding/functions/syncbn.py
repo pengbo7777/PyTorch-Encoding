@@ -103,13 +103,11 @@ class syncbatchnorm_(Function):
 
         # Output
         ctx.save_for_backward(x, _ex, _exs, gamma, beta)
-
-        ctx.mark_non_differentiable(running_mean, running_var)
-        return y, running_mean, running_var
+        return y
 
     @staticmethod
     @once_differentiable
-    def backward(ctx, dz, _drunning_mean, _drunning_var):
+    def backward(ctx, dz):
         x, _ex, _exs, gamma, beta = ctx.saved_tensors
         dz = dz.contiguous()
 
@@ -245,13 +243,11 @@ class inp_syncbatchnorm_(Function):
 
         # Output
         ctx.save_for_backward(x, _ex, _exs, gamma, beta)
-
-        ctx.mark_non_differentiable(running_mean, running_var)
-        return x, running_mean, running_var
+        return x
 
     @staticmethod
     @once_differentiable
-    def backward(ctx, dz, _drunning_mean, _drunning_var):
+    def backward(ctx, dz):
         z, _ex, _exs, gamma, beta = ctx.saved_tensors
         dz = dz.contiguous()
 

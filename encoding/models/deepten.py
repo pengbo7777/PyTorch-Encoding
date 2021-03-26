@@ -13,8 +13,11 @@ import torch.nn as nn
 
 from ..nn import Encoding, View, Normalize
 from .backbone import resnet50s, resnet101s, resnet152s
+# from . import getseten
+from encoding.models.texture_attention_net import *
 
-__all__ = ['DeepTen', 'get_deepten', 'get_deepten_resnet50_minc']
+__all__ = ['DeepTen', 'get_deepten', 'get_deepten_resnet50_minc', 'get_seten','get_deepten_triplet']
+
 
 class DeepTen(nn.Module):
     def __init__(self, nclass, backbone):
@@ -34,10 +37,10 @@ class DeepTen(nn.Module):
             nn.Conv2d(2048, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            Encoding(D=128,K=n_codes),
-            View(-1, 128*n_codes),
+            Encoding(D=128, K=n_codes),
+            View(-1, 128 * n_codes),
             Normalize(),
-            nn.Linear(128*n_codes, nclass),
+            nn.Linear(128 * n_codes, nclass),
         )
 
     def forward(self, x):
@@ -51,6 +54,47 @@ class DeepTen(nn.Module):
         x = self.pretrained.layer3(x)
         x = self.pretrained.layer4(x)
         return self.head(x)
+
+
+class DeepTen_Triplet(nn.Module):
+    def __init__(self, nclass, backbone):
+        super(DeepTen_Triplet, self).__init__()
+        self.backbone = backbone
+        # copying modules from pretrained models
+        if self.backbone == 'resnet50':
+            self.pretrained = resnet50s(pretrained=True, dilated=False)
+        elif self.backbone == 'resnet101':
+            self.pretrained = resnet101s(pretrained=True, dilated=False)
+        elif self.backbone == 'resnet152':
+            self.pretrained = resnet152s(pretrained=True, dilated=False)
+        else:
+            raise RuntimeError('unknown backbone: {}'.format(self.backbone))
+        n_codes = 32
+        self.head = nn.Sequential(
+            nn.Conv2d(2048, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            Encoding(D=128, K=n_codes),
+            View(-1, 128 * n_codes),
+            Normalize(),
+            # nn.Linear(128 * n_codes, nclass),
+        )
+        self.classifier = nn.Linear(128 * n_codes, nclass)
+
+    def forward(self, x):
+        _, _, h, w = x.size()
+        x = self.pretrained.conv1(x)
+        x = self.pretrained.bn1(x)
+        x = self.pretrained.relu(x)
+        x = self.pretrained.maxpool(x)
+        x = self.pretrained.layer1(x)
+        x = self.pretrained.layer2(x)
+        x = self.pretrained.layer3(x)
+        x = self.pretrained.layer4(x)
+        x = self.head(x)
+        x_f = self.classifier(x)
+        return x, x_f
+
 
 def get_deepten(dataset='pascal_voc', backbone='resnet50', pretrained=False,
                 root='~/.encoding/models', **kwargs):
@@ -74,8 +118,27 @@ def get_deepten(dataset='pascal_voc', backbone='resnet50', pretrained=False,
     if pretrained:
         from .model_store import get_model_file
         model.load_state_dict(torch.load(
-            get_model_file('deepten_%s_%s'%(backbone, acronyms[dataset]), root=root)))
+            get_model_file('deepten_%s_%s' % (backbone, acronyms[dataset]), root=root)))
     return model
+
+def get_deepten_triplet(dataset='pascal_voc', backbone='resnet50', pretrained=False,
+                root='~/.encoding/models', **kwargs):
+    from ..datasets import datasets, acronyms
+    model = DeepTen_Triplet(datasets[dataset.lower()].NUM_CLASS, backbone=backbone, **kwargs)
+    if pretrained:
+        from .model_store import get_model_file
+        model.load_state_dict(torch.load(
+            get_model_file('deepten_%s_%s' % (backbone, acronyms[dataset]), root=root)))
+    return model
+
+
+
+def get_seten(dataset='pascal_voc', backbone='resnet50', pretrained=False,
+              root='~/.encoding/models', **kwargs):
+    from ..datasets import datasets, acronyms
+    model = getseten(datasets[dataset.lower()].NUM_CLASS, backbone=backbone)
+    return model
+
 
 def get_deepten_resnet50_minc(pretrained=False, root='~/.encoding/models', **kwargs):
     r"""DeepTen model from the paper `"Deep TEN: Texture Encoding Network"
@@ -90,8 +153,13 @@ def get_deepten_resnet50_minc(pretrained=False, root='~/.encoding/models', **kwa
 
     Examples
     --------
-    >>> model = get_deepten_resnet50_minc(pretrained=True)
+    >>> model = get_deepten_resnet50_minc(pretrained=False)
     >>> print(model)
     """
+    return get_deepten(dataset='minc', backbone='resnet50', pretrained=pretrained,
+                       root=root, **kwargs)
+
+
+def get_deepten_SeTen_minc(pretrained=False, root='~/.encoding/models', **kwargs):
     return get_deepten(dataset='minc', backbone='resnet50', pretrained=pretrained,
                        root=root, **kwargs)
