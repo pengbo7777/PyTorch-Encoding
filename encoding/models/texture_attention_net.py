@@ -93,7 +93,7 @@ class Net(nn.Module):
             nn.Linear(128 * n_codes4, 512),
         )
 
-        self.classifier = nn.Linear(2048, nclass)
+        self.classifier = nn.Linear(1024, nclass)
 
     def forward(self, x):
         if isinstance(x, Variable):
@@ -116,12 +116,12 @@ class Net(nn.Module):
         x = self.pretrained.layer3(x)
         x = self.pretrained.layer4(x)
 
-        x1 = self.head1(x)
-        x2 = self.head2(x)
+        # x1 = self.head1(x)
+        # x2 = self.head2(x)
         x3 = self.head3(x)
         x4 = self.head4(x)
 
-        x = torch.cat([x1, x2, x3, x4], 1)
+        x = torch.cat([x3, x4], 1)
         return self.classifier(x)
 
 
@@ -187,7 +187,7 @@ class Net_sum(nn.Module):
             nn.Linear(128 * n_codes4, 512),
         )
 
-        self.classifier = nn.Linear(512, nclass)
+        self.classifier = nn.Linear(1024, nclass)
 
     def forward(self, x):
         if isinstance(x, Variable):
@@ -220,6 +220,6 @@ class Net_sum(nn.Module):
 
 
 def getseten(nclass, backbone):
-    # net = Net(nclass, backbone)
-    net = Net_sum(nclass, backbone)
+    net = Net(nclass, backbone)
+    # net = Net_sum(nclass, backbone)
     return net

@@ -296,6 +296,8 @@ def main():
         model.eval()
         top1 = AverageMeter()
         top5 = AverageMeter()
+
+
         global best_pred, acclist_train, acclist_val
         is_best = False
         correct, total = 0, 0
@@ -306,6 +308,10 @@ def main():
                 acc1, acc5 = accuracy(output, target, topk=(1, 5))
                 top1.update(acc1[0], data.size(0))
                 top5.update(acc5[0], data.size(0))
+
+                pred = output.data.max(1)[1]
+                correct += pred.eq(target.data).cpu().sum()
+                total += target.size(0)
 
         # sum all
         # sum1, cnt1, sum5, cnt5 = torch_dist_sum( top1.sum, top1.count, top5.sum, top5.count)
@@ -319,8 +325,8 @@ def main():
 
         top1_acc = top1.avg
         top5_acc = top5.avg
-        print('Validation: Top1: %.3f | Top5: %.3f' % (100. * top1_acc, 100. * top5_acc))
-        print('Valid set, Accuracy: %.3f' %(100. * top1_acc))
+        # print('Validation: Top1: %.3f | Top5: %.3f' % (100. * top1_acc, 100. * top5_acc))
+        # print('Valid set, Accuracy: %.3f' %(100. * top1_acc))
         print('Validation: Top1: %.3f | Top5: %.3f' % (top1_acc, top5_acc))
         # save checkpoint
         acclist_val += [top1_acc]
