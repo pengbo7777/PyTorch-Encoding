@@ -219,7 +219,7 @@ class Net_sum(nn.Module):
         return self.classifier(x)
 
 
-class Net_patch():
+class Net_patch(nn.Module):
     def __init__(self, nclass, backbone='resnet50'):
         super(Net_patch, self).__init__()
         self.backbone = backbone
@@ -281,7 +281,7 @@ class Net_patch():
         #     nn.Linear(128 * n_codes4, 512),
         # )
 
-        self.classifier = nn.Linear(128 * n_codes1, nclass)
+        self.classifier = nn.Linear(128 * 64, nclass)
 
     def forward(self, x):
         if isinstance(x, Variable):
@@ -322,12 +322,37 @@ class Net_patch():
         x6 = self.head1(patch6)
         x7 = self.head1(patch7)
 
-        x = x1 + x2 + x3 + x4 + x5 + x6 + x7
-        return self.classifier(x)
-
+        x8 = x1 + x2 + x3 + x4 + x5 + x6 + x7
+        x =  self.classifier(x8)
+        return x
 
 def getseten(nclass, backbone):
     # net = Net(nclass, backbone)
-    # net = Net_sum(nclass, backbone)
+    # net = Net_sum(nclass, backbone);:
     net = Net_patch(nclass,backbone)
     return net
+
+
+def test():
+    net = Net_patch(nclass=3)
+    # print(net)
+    x = Variable(torch.randn(2, 3, 224, 224))
+    # x = Variable(torch.randn(64, 128))
+    # x2 = Variable(torch.randn(64, 128))
+
+    # x3 = x + 0.2* x2
+
+    # print(x3.shape)
+
+    y = net(x)
+    print(y.shape)
+    # print(y.shape)
+    # params = net.parameters()
+    # sum = 0
+    # for param in params:
+    #     sum += param.nelement()
+    # print('Total params:', sum)
+
+
+if __name__ == "__main__":
+    test()
