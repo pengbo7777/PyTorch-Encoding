@@ -306,30 +306,32 @@ class Net_patch(nn.Module):
 
         patch1 = x[:, :, :2, :2]
         patch2 = x[:, :, 2:4, :2]
-        patch3 = x[:, :, 4:7, :3]
-
-        patch4 = x[:, :, :2, 2:4]
-        patch5 = x[:, :, 2:4, 2:4]
+        # patch3 = x[:, :, 4:7, :3]
+        #
+        # patch4 = x[:, :, :2, 2:4]
+        # patch5 = x[:, :, 2:4, 2:4]
 
         patch6 = x[:, :, :3, 4:7]
         patch7 = x[:, :, 4:7, 4:7]
 
         x1 = self.head1(patch1)
         x2 = self.head1(patch2)
-        x3 = self.head1(patch3)
-        x4 = self.head1(patch4)
-        x5 = self.head1(patch5)
+        # x3 = self.head1(patch3)
+        # x4 = self.head1(patch4)
+        # x5 = self.head1(patch5)
         x6 = self.head1(patch6)
         x7 = self.head1(patch7)
 
-        x8 = x1 + x2 + x3 + x4 + x5 + x6 + x7
-        x =  self.classifier(x8)
+        x8 = 0.1*x1 + 0.1*x2 + 0.4*x6 + 0.4*x7
+        # x8 = torch.add(x6, x7)
+        x = self.classifier(x8)
         return x
+
 
 def getseten(nclass, backbone):
     # net = Net(nclass, backbone)
     # net = Net_sum(nclass, backbone);:
-    net = Net_patch(nclass,backbone)
+    net = Net_patch(nclass, backbone)
     return net
 
 
