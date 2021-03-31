@@ -16,7 +16,7 @@ from .backbone import resnet50s, resnet101s, resnet152s
 # from . import getseten
 from encoding.models.texture_attention_net import *
 
-__all__ = ['DeepTen', 'get_deepten', 'get_deepten_resnet50_minc', 'get_seten','get_deepten_triplet']
+__all__ = ['DeepTen', 'get_deepten', 'get_deepten_resnet50_minc', 'get_seten','get_deepten_triplet','get_att_patchnet']
 
 
 class DeepTen(nn.Module):
@@ -139,6 +139,12 @@ def get_seten(dataset='pascal_voc', backbone='resnet50', pretrained=False,
     model = getseten(datasets[dataset.lower()].NUM_CLASS, backbone=backbone)
     return model
 
+def get_att_patchnet(dataset='pascal_voc', backbone='resnet50', pretrained=False,
+              root='~/.encoding/models', **kwargs):
+    from ..datasets import datasets, acronyms
+    model = get_att(datasets[dataset.lower()].NUM_CLASS, backbone=backbone)
+    return model
+
 
 def get_deepten_resnet50_minc(pretrained=False, root='~/.encoding/models', **kwargs):
     r"""DeepTen model from the paper `"Deep TEN: Texture Encoding Network"
@@ -149,7 +155,6 @@ def get_deepten_resnet50_minc(pretrained=False, root='~/.encoding/models', **kwa
         Whether to load the pretrained weights for model.
     root : str, default '~/.encoding/models'
         Location for keeping the model parameters.
-
 
     Examples
     --------

@@ -30,6 +30,7 @@ models = {
     # deepten paper
     'deepten_resnet50_minc': get_deepten_resnet50_minc,
     'seten': get_seten,
+    'att_patchnet': get_att_patchnet,
     'deepten_triplet':get_deepten_triplet,
     # segmentation resnet models
     'encnet_resnet101s_coco': get_encnet_resnet101_coco,
