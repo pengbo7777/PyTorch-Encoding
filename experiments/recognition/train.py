@@ -218,7 +218,7 @@ def main():
         rest_params = [v for n, v in param_dict.items() if not ('bn' in n or 'bias' in n)]
         # if args.gpu == 0:
         print(" Weight decay NOT applied to BN parameters ")
-        print(f'len(parameters): {len(list(model.parameters()))} = {len(bn_params)} + {len(rest_params)}')
+        print('len(parameters): {len(list(model.parameters()))} = {len(bn_params)} + {len(rest_params)}')
         optimizer = torch.optim.SGD([{'params': bn_params, 'weight_decay': 0},
                                      {'params': rest_params, 'weight_decay': args.weight_decay}],
                                     lr=args.lr,
@@ -268,7 +268,6 @@ def main():
             loss.backward()
             optimizer.step()
 
-            # -----另一种计算方式
             train_loss += loss.item()
             pred = output.data.max(1)[1]
             correct += pred.eq(target.data).cpu().sum()
@@ -327,6 +326,7 @@ def main():
         top5_acc = top5.avg
         # print('Validation: Top1: %.3f | Top5: %.3f' % (100. * top1_acc, 100. * top5_acc))
         # print('Valid set, Accuracy: %.3f' %(100. * top1_acc))
+        print('Validation set, Accuracy:({:.0f}%)\n'.format(100. * correct / total))
         print('Validation: Top1: %.3f | Top5: %.3f' % (top1_acc, top5_acc))
         # save checkpoint
         acclist_val += [top1_acc]
@@ -356,7 +356,7 @@ def main():
         # if epoch % 10 == 0:  # or epoch == args.epochs-1:
         validate(epoch)
         elapsed = time.time() - tic
-        print(f'Epoch: {epoch}, Time cost: {elapsed}')
+        print('Epoch: {epoch}, Time cost: {elapsed}')
 
     encoding.utils.save_checkpoint({
         'epoch': args.epochs - 1,

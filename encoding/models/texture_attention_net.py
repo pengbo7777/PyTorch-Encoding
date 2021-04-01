@@ -436,7 +436,7 @@ class Att_patch_net(nn.Module):
         # x8 = 0.1*x1 + 0.1*x2 + 0.4*x6 + 0.4*x7
         # x8 = torch.add(x6, x7)
         x8 = torch.stack([x1, x2, x3, x4, x6, x7], 0)
-        self.se(x8)
+        x8 = self.se(x8)
         x = self.classifier(x8)
         return x
 
