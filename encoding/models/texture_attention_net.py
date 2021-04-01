@@ -341,7 +341,7 @@ class Att_patch_net(nn.Module):
         else:
             raise RuntimeError('unknown backbone: {}'.format(self.backbone))
 
-        n_codes1 = 64
+        n_codes1 = 32
         n_codes2 = 16
         n_codes3 = 32
         n_codes4 = 64
@@ -355,8 +355,8 @@ class Att_patch_net(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             Encoding(D=128, K=n_codes1),
-            View(-1, 128 * n_codes1),
-            Normalize(),
+            # View(-1, 128 * n_codes1),
+            # Normalize(),
             # nn.Linear(128 * n_codes1, 512),
         )
 
@@ -392,7 +392,12 @@ class Att_patch_net(nn.Module):
         #     nn.Linear(128 * n_codes4, 512),
         # )
 
-        self.classifier = nn.Linear(128 * 64, nclass)
+        # self.classifier = nn.Linear(128 * 64, nclass)
+        self.classifier = nn.Sequential(
+            View(-1, 128 * n_codes1),
+            Normalize(),
+            nn.Linear(128 * n_codes1, nclass),
+        )
 
     def forward(self, x):
         if isinstance(x, Variable):
@@ -432,11 +437,11 @@ class Att_patch_net(nn.Module):
         # x5 = self.head1(patch5)
         x6 = self.head1(patch6)
         x7 = self.head1(patch7)
-
         # x8 = 0.1*x1 + 0.1*x2 + 0.4*x6 + 0.4*x7
         # x8 = torch.add(x6, x7)
-        x8 = torch.stack([x1, x2, x3, x4, x6, x7], 0)
+        x8 = torch.stack([x1, x2, x3, x4, x6, x7], 1)
         x8 = self.se(x8)
+        x8 = torch.sum(x8, 1)
         x = self.classifier(x8)
         return x
 
