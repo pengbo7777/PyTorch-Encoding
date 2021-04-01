@@ -257,6 +257,7 @@ def main():
         train_loss, correct, total = 0, 0, 0
         # losses = AverageMeter()
         top1 = AverageMeter()
+        top5 = AverageMeter()
         global best_pred, acclist_train
         for batch_idx, (data, target) in enumerate(train_loader):
             scheduler(optimizer, batch_idx, epoch, best_pred)
@@ -276,9 +277,10 @@ def main():
             # ------end------
 
             if not args.mixup:
-                acc1 = accuracy(output, target, topk=(1,))
+                acc1, acc5 = accuracy(output, target, topk=(1,5))
                 # print("acc1:")
                 # print(acc1)
+                top5.update(acc5[0], data.size(0))
                 top1.update(acc1[0], data.size(0))
 
             # losses.update(loss.item(), data.size(0))
@@ -287,8 +289,12 @@ def main():
                     print('Batch: %d| Loss: %.3f' % (batch_idx, train_loss / (batch_idx + 1)))
                 else:
                     print('Batch: %d| Loss: %.3f | Top1: %.3f' % (batch_idx, train_loss / (batch_idx + 1), top1.avg))
-        print(' Train set, Accuracy:%.3f)' % (correct / total))
-        print(' Top1: %.3f' % top1.avg)
+        print("Train set correct:%d total:%d" % (correct, total))
+        print('Train set, Accuracy:%.3f)' % (correct / total))
+        # print(' Top1: %.3f' % top1.avg)
+        # print(' Top1: %.3f' % top1.avg)
+        print('Train: Top1: %.3f | Top5: %.3f' % (top1.avg, top5.avg))
+
         acclist_train += [top1.avg]
 
     def validate(epoch):
@@ -325,8 +331,8 @@ def main():
         top5_acc = top5.avg
         # print('Validation: Top1: %.3f | Top5: %.3f' % (100. * top1_acc, 100. * top5_acc))
         # print('Valid set, Accuracy: %.3f' %(100. * top1_acc))
-        print("correct:%d total:%d" % (correct, total))
-        print('Train set, Accuracy:%.3f' % (correct / total))
+        print("Validation correct:%d total:%d" % (correct, total))
+        print('Valid set, Accuracy:%.3f' % (correct / total))
         print('Validation: Top1: %.3f | Top5: %.3f' % (top1_acc, top5_acc))
         # save checkpoint
         acclist_val += [top1_acc]
