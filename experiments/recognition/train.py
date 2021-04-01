@@ -154,7 +154,7 @@ def main():
 
     # train_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
     train_loader = torch.utils.data.DataLoader(
-        trainset, batch_size=args.batch_size, shuffle=False)
+        trainset, batch_size=args.batch_size, shuffle=True)
 
     # val_sampler = torch.utils.data.distributed.DistributedSampler(valset, shuffle=False)
     val_loader = torch.utils.data.DataLoader(
@@ -290,7 +290,7 @@ def main():
                 else:
                     print('Batch: %d| Loss: %.3f | Top1: %.3f' % (batch_idx, train_loss / (batch_idx + 1), top1.avg))
         print("Train set correct:%d total:%d" % (correct, total))
-        print('Train set, Accuracy:%.3f)' % (correct / total))
+        print('Train set, Accuracy:%.3f' % (correct / total))
         # print(' Top1: %.3f' % top1.avg)
         # print(' Top1: %.3f' % top1.avg)
         print('Train: Top1: %.3f | Top5: %.3f' % (top1.avg, top5.avg))
@@ -332,7 +332,7 @@ def main():
         # print('Validation: Top1: %.3f | Top5: %.3f' % (100. * top1_acc, 100. * top5_acc))
         # print('Valid set, Accuracy: %.3f' %(100. * top1_acc))
         print("Validation correct:%d total:%d" % (correct, total))
-        print('Valid set, Accuracy:%.3f' % (correct / total))
+        print('Valid set, Accuracy: %.3f' % (correct / total))
         print('Validation: Top1: %.3f | Top5: %.3f' % (top1_acc, top5_acc))
         # save checkpoint
         acclist_val += [top1_acc]

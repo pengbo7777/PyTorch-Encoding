@@ -149,6 +149,7 @@ class HardTripletLoss(nn.Module):
             # triplet_loss[i, j, k] will contain the triplet loss of anc=i, pos=j, neg=k
             # Uses broadcasting where the 1st argument has shape (batch_size, batch_size, 1)
             # and the 2nd (batch_size, 1, batch_size)
+            print(anc_pos_dist,anc_neg_dist,self.margin)
             loss = anc_pos_dist - anc_neg_dist + self.margin
 
             mask = _get_triplet_mask(labels).float()
