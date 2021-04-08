@@ -412,17 +412,19 @@ class Att_patch_net(nn.Module):
             # Normalize(),
             nn.Linear(128 * n_codes1, nclass),
         )
-    def slide_tensor(self,x):
+
+    def slide_tensor(x):
         tensors = []
         len = 5
-        for i in range(0, x.shape[2] - len):
-            for j in range(1, x.shape[3] - len):
+        for i in range(0, x.shape[2] - len + 1):
+            for j in range(0, x.shape[3] - len + 1):
                 # b[i, j] = (a[i - 1, j - 1] + a[i - 1, j] + a[i - 1, j + 1] + a[i, j - 1] + a[i, j] + a[i, j + 1] + a[
                 #     i + 1, j - 1] + a[i + 1, j] + a[i + 1, j + 1]) / 9.0
-                slide = x[:, :, i:i+len,j:j+len]
+                slide = x[:, :, i:i + len, j:j + len]
                 # b[i, j] = (a[i - 1, j - 1] + a[i - 1, j] + a[i - 1, j + 1] + a[i, j - 1] + a[i, j] + a[i, j + 1] + a[
                 #     i + 1, j - 1] + a[i + 1, j] + a[i + 1, j + 1]) / 9.0
                 tensors.append(slide)
+        # tensors = torch.stack(tensors, 1)
         return tensors
 
     def forward(self, x):
@@ -456,30 +458,17 @@ class Att_patch_net(nn.Module):
         # patch6 = x[:, :, :3, 4:7]
         # patch7 = x[:, :, 4:7, 4:7]
         xs = self.slide_tensor(x)
+        x_vs = []
+        for patch in xs:
+            x_v = self.head1(patch)
+            x_vs.append(x_v)
+        # vlad patch set
+        x_vs = torch.stack(x_vs, 1)
 
+        # 通道注意力
+        # x_vs = self.se(x_vs)
 
-        patch1 = x[:, :, :5, :5]
-        patch2 = x[:, :, 1:6, :5]
-        patch3 = x[:, :, 2:7, :5]
-
-        # patch4 = x[:, :, :5, 2:4]
-        # patch5 = x[:, :, 2:4, 2:4]
-
-        patch6 = x[:, :, :5, 1:6]
-        patch7 = x[:, :, :5, 2:7]
-
-        x1 = self.head1(patch1)
-        x2 = self.head1(patch2)
-        x3 = self.head1(patch3)
-        # x4 = self.head1(patch4)
-        # x5 = self.head1(patch5)
-        x6 = self.head1(patch6)
-        x7 = self.head1(patch7)
-        # x8 = 0.1*x1 + 0.1*x2 + 0.4*x6 + 0.4*x7
-        # x8 = torch.add(x6, x7)
-        x8 = torch.stack([x1, x2, x3, x6, x7], 1)
-        x8 = self.se(x8)
-        x8 = torch.sum(x8, 1)
+        x8 = torch.sum(x_vs, 1)
         x = self.classifier(x8)
         return x
 
