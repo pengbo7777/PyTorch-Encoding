@@ -362,7 +362,7 @@ def main():
         # if epoch % 10 == 0:  # or epoch == args.epochs-1:
         validate(epoch)
         elapsed = time.time() - tic
-        print('Epoch: {epoch}, Time cost: {elapsed}')
+        print(f'Epoch: {epoch}, Time cost: {elapsed}')
 
     encoding.utils.save_checkpoint({
         'epoch': args.epochs - 1,

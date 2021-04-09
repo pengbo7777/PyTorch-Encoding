@@ -57,7 +57,7 @@ CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/trai
 
 CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model seten --lr-scheduler poly --epochs 5000 --checkname seten_7sum --lr 0.001 --batch-size 64 > /workspace/experiments/results/0407patch7_sum_crop224_valid1.out &
 CUDA_VISIBLE_DEVICES=2,3 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model seten --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 8 > /workspace/experiments/results/03311139patch7_sum_crop224_valid1.out &
-CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 64 > /workspace/experiments/results/03301705patch7_sum_crop224_valid1.out &
+CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 64 > /workspace/experiments/results/04081107patchslide_sum_crop224_valid1.out &
 CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.002 --batch-size 64 > /workspace/experiments/results/03301705patch7_sum_crop224_valid1.out &
 
 

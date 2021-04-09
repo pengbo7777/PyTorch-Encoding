@@ -320,7 +320,7 @@ class Net_patch(nn.Module):
 
         patch6 = x[:, :, :3, 4:7]
         patch7 = x[:, :, 4:7, 4:7]
-        print(patch1.shape)
+        # print(patch1.shape)
         x1 = self.head1(patch1)
         x2 = self.head1(patch2)
         x3 = self.head1(patch3)
@@ -328,17 +328,17 @@ class Net_patch(nn.Module):
         x5 = self.head1(patch5)
         x6 = self.head1(patch6)
         x7 = self.head1(patch7)
-        print(x1.shape)
+        # print(x1.shape)
         x8 = torch.stack([x1, x2, x3, x4, x6, x7], 1)
         # x8 = self.se(x8)
-        print(x8.shape)
+        # print(x8.shape)
         x8 = torch.sum(x8, 1)
-        print(x8.shape)
+        # print(x8.shape)
         # x8 = 0.1 * x1 + 0.1 * x2 + 0.4 * x6 + 0.4 * x7
         # x8 = torch.add(x6, x7)
 
         x = self.classifier(x8)
-        print(x.shape)
+        # print(x.shape)
         return x
 
 
@@ -413,7 +413,7 @@ class Att_patch_net(nn.Module):
             nn.Linear(128 * n_codes1, nclass),
         )
 
-    def slide_tensor(x):
+    def slide_tensor(self, x):
         tensors = []
         len = 5
         for i in range(0, x.shape[2] - len + 1):
