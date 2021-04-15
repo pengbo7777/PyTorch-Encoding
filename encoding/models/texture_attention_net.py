@@ -6,11 +6,99 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import torch
 import torch.nn as nn
+from einops import rearrange, repeat
 
 from ..nn import Encoding, View, Normalize
 from .backbone import resnet50s, resnet101s, resnet152s
 
 __all__ = ['getseten', 'get_att']
+
+MIN_NUM_PATCHES = 16
+
+
+class Residual(nn.Module):
+    def __init__(self, fn):
+        super().__init__()
+        self.fn = fn
+
+    def forward(self, x, **kwargs):
+        return self.fn(x, **kwargs) + x
+
+
+class PreNorm(nn.Module):
+    def __init__(self, dim, fn):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.fn = fn
+
+    def forward(self, x, **kwargs):
+        return self.fn(self.norm(x), **kwargs)
+
+
+class FeedForward(nn.Module):
+    def __init__(self, dim, hidden_dim, dropout=0.):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, dim),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class Attention(nn.Module):
+    def __init__(self, dim, heads=8, dropout=0.1):
+        super().__init__()
+        self.heads = heads
+        self.scale = dim ** -0.5
+
+        self.to_qkv = nn.Linear(dim, dim * 3, bias=False)
+        self.to_out = nn.Sequential(
+            nn.Linear(dim, dim),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self, x, mask=None):
+        b, n, _, h = *x.shape, self.heads
+        qkv = self.to_qkv(x).chunk(3, dim=-1)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), qkv)
+
+        dots = torch.einsum('bhid,bhjd->bhij', q, k) * self.scale
+
+        if mask is not None:
+            mask = F.pad(mask.flatten(1), (1, 0), value=True)
+            assert mask.shape[-1] == dots.shape[-1], 'mask has incorrect dimensions'
+            mask = mask[:, None, :] * mask[:, :, None]
+            dots.masked_fill_(~mask, float('-inf'))
+            del mask
+
+        attn = dots.softmax(dim=-1)
+
+        out = torch.einsum('bhij,bhjd->bhid', attn, v)
+        out = rearrange(out, 'b h n d -> b n (h d)')
+        out = self.to_out(out)
+        return out
+
+
+class Transformer(nn.Module):
+    def __init__(self, dim, depth, heads, mlp_dim, dropout):
+        super().__init__()
+        self.layers = nn.ModuleList([])
+        for _ in range(depth):
+            self.layers.append(nn.ModuleList([
+                Residual(PreNorm(dim, Attention(dim, heads=heads, dropout=dropout))),
+                Residual(PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout)))
+            ]))
+
+    def forward(self, x, mask=None):
+        for attn, ff in self.layers:
+            x = attn(x, mask=mask)
+            x = ff(x)
+        return x
 
 
 class SELayer(nn.Module):
@@ -246,6 +334,7 @@ class Net_patch(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             Encoding(D=128, K=n_codes1),
+            # Normalize
             # View(-1, 128 * n_codes1),
             # Normalize(),
             # nn.Linear(128 * n_codes1, 512),
@@ -473,17 +562,149 @@ class Att_patch_net(nn.Module):
         return x
 
 
+class Tsen_net(nn.Module):
+    def __init__(self, nclass, backbone='resnet50'):
+        super(Tsen_net, self).__init__()
+        self.backbone = backbone
+        if self.backbone == 'resnet50':
+            self.pretrained = resnet50s(pretrained=True, dilated=False)
+        elif self.backbone == 'resnet101':
+            self.pretrained = resnet101s(pretrained=True, dilated=False)
+        elif self.backbone == 'resnet152':
+            self.pretrained = resnet152s(pretrained=True, dilated=False)
+        else:
+            raise RuntimeError('unknown backbone: {}'.format(self.backbone))
+
+        n_codes1 = 64
+        n_codes2 = 16
+        n_codes3 = 32
+        n_codes4 = 64
+
+        # 添加vlad模块
+        self.dim = 128
+        self.alpha = 1.0
+
+        # self.head1 = nn.Sequential(
+        #     nn.Conv2d(2048, 128, 1),
+        #     nn.BatchNorm2d(128),
+        #     nn.ReLU(inplace=True),
+        #     Encoding(D=128, K=n_codes1),
+        #     View(-1, 128 * n_codes1),
+        #     Normalize(),
+        #     # nn.Linear(128 * n_codes1, 512),
+        # )
+
+        self.head1 = nn.Sequential(
+            nn.Conv2d(2048, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            Encoding(D=128, K=n_codes1),
+            # View(-1, 128 * n_codes1),
+            # Normalize(),
+            # nn.Linear(128 * n_codes, nclass),
+        )
+
+        self.se = SELayer(6)
+        self.dic_encoder = Transformer(128, 1, 1, 2048, 0.2)
+        # self.head2 = nn.Sequential(
+        #     nn.Conv2d(2048, 128, 1),
+        #     nn.BatchNorm2d(128),
+        #     nn.ReLU(inplace=True),
+        #     Encoding(D=128, K=n_codes2),
+        #     View(-1, 128 * n_codes2),
+        #     Normalize(),
+        #     nn.Linear(128 * n_codes2, 512),
+        # )
+        #
+        # self.head3 = nn.Sequential(
+        #     nn.Conv2d(2048, 128, 1),
+        #     nn.BatchNorm2d(128),
+        #     nn.ReLU(inplace=True),
+        #     Encoding(D=128, K=n_codes3),
+        #     View(-1, 128 * n_codes3),
+        #     Normalize(),
+        #     nn.Linear(128 * n_codes3, 512),
+        # )
+        #
+        # self.head4 = nn.Sequential(
+        #     nn.Conv2d(2048, 128, 1),
+        #     nn.BatchNorm2d(128),
+        #     nn.ReLU(inplace=True),
+        #     Encoding(D=128, K=n_codes4),
+        #     View(-1, 128 * n_codes4),
+        #     Normalize(),
+        #     nn.Linear(128 * n_codes4, 512),
+        # )
+
+        # self.classifier = nn.Linear(128 * 64, nclass)
+        # self.classifier = nn.Sequential(
+        #     # View(-1, 128 * n_codes1),
+        #     # Normalize(),
+        #     nn.Linear(128 * n_codes1, nclass),
+        # )
+
+        self.classifier = nn.Sequential(
+            View(-1, 128 * n_codes1),
+            Normalize(),
+            nn.Linear(128 * n_codes1, 512),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(512, nclass),
+
+        )
+
+    def slide_tensor(self, x):
+        tensors = []
+        len = 5
+        for i in range(0, x.shape[2] - len + 1):
+            for j in range(0, x.shape[3] - len + 1):
+                # b[i, j] = (a[i - 1, j - 1] + a[i - 1, j] + a[i - 1, j + 1] + a[i, j - 1] + a[i, j] + a[i, j + 1] + a[
+                #     i + 1, j - 1] + a[i + 1, j] + a[i + 1, j + 1]) / 9.0
+                slide = x[:, :, i:i + len, j:j + len]
+                # b[i, j] = (a[i - 1, j - 1] + a[i - 1, j] + a[i - 1, j + 1] + a[i, j - 1] + a[i, j] + a[i, j + 1] + a[
+                #     i + 1, j - 1] + a[i + 1, j] + a[i + 1, j + 1]) / 9.0
+                tensors.append(slide)
+        # tensors = torch.stack(tensors, 1)
+        return tensors
+
+    def forward(self, x):
+        if isinstance(x, Variable):
+            _, _, h, w = x.size()
+        elif isinstance(x, tuple) or isinstance(x, list):
+            var_input = x
+            while not isinstance(var_input, Variable):
+                var_input = var_input[0]
+            _, _, h, w = var_input.size()
+        else:
+            raise RuntimeError('unknown input type: ', type(x))
+
+        x = self.pretrained.conv1(x)
+        x = self.pretrained.bn1(x)
+        x = self.pretrained.relu(x)
+        x = self.pretrained.maxpool(x)
+
+        x = self.pretrained.layer1(x)
+        x = self.pretrained.layer2(x)
+        x = self.pretrained.layer3(x)
+        x = self.pretrained.layer4(x)
+        x = self.head1(x)
+        x = self.dic_encoder(x)
+        x = self.classifier(x)
+        return x
+
+
 def getseten(nclass, backbone):
     # net = Net(nclass, backbone)
     # net = Net_sum(nclass, backbone);:
-    net = Net_patch(nclass, backbone)
+    # net = Net_patch(nclass, backbone)
+    net = Tsen_net(nclass, backbone)
     return net
 
 
 def get_att(nclass, backbone):
     # net = Net(nclass, backbone)
     # net = Net_sum(nclass, backbone);:
-    net = Att_patch_net(nclass, backbone)
+    net = Tsen_net(nclass, backbone)
     return net
 
 
