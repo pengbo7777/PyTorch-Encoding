@@ -1,11 +1,11 @@
-"""ResNet variants"""
 
 import torch
 from .resnet import ResNet, Bottleneck
 from ..model_store import get_model_file
+from ..swin_transformer import *
 
 __all__ = ['resnet50s', 'resnet101s', 'resnet152s',
-           'resnet50d']
+           'resnet50d', 'swin_tiny_patch4_window7_224']
 
 # pspnet version of ResNet
 def resnet50s(pretrained=False, root='~/.encoding/models', **kwargs):
@@ -56,3 +56,16 @@ def resnet50d(pretrained=False, root='~/.encoding/models', **kwargs):
         model.load_state_dict(torch.load(
             get_model_file('resnet50d', root=root)), strict=False)
     return model
+
+def swin_tiny_patch4_window7_224(pretrained=True, **kwargs):
+
+    model = SwinTransformer()
+    if pretrained:
+        path = '/workspace/experiments/swin_tiny_patch4_window7_224.pth'
+        # path = 'D:\pengbo\code\swin_tiny_patch4_window7_224.pth'
+        model.load_state_dict(torch.load(path))
+    return model
+
+if __name__ == '__main__':
+    model = swin_tiny_patch4_window7_224(True)
+    print(model)

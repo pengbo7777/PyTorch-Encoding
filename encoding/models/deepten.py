@@ -143,6 +143,10 @@ def get_att_patchnet(dataset='pascal_voc', backbone='resnet50', pretrained=False
               root='~/.encoding/models', **kwargs):
     from ..datasets import datasets, acronyms
     model = get_att(datasets[dataset.lower()].NUM_CLASS, backbone=backbone)
+    # if pretrained:
+    #     from .model_store import get_model_file
+    #     model.load_state_dict(torch.load(
+    #         get_model_file('deepten_%s_%s' % (backbone, acronyms[dataset]), root=root)))
     return model
 
 

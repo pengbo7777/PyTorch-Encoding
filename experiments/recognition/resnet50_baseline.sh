@@ -74,7 +74,7 @@ CUDA_VISIBLE_DEVICES=0,1 python train_triple.py --dataset minc --model deepten_t
 CUDA_VISIBLE_DEVICES=0,1 python /workspace/experiments/recognition/train.py --dataset minc --model seten --lr-scheduler poly --epochs 5000 --checkname resnet50_check --lr 0.001 --batch-size 8
 
 
-CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler poly --checkname 0412deepencoder_64_128_crop224_valid1 --lr 0.001 --batch-size 64 > /workspace/experiments/results/0412deepencoder_64_128_crop224_valid1.out &
+CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler poly --checkname 0412deepencoder_64_128_crop224_valid1 --lr 0.001 --batch-size 64 > /workspace/experiments/results/0415deepencoder_64_128_crop224_valid1.out &
 
 
 /home/pengbo/results/runs/minc/deepten_resnet50_minc/resnet50_check/
@@ -82,3 +82,5 @@ CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/trai
 
 
 CUDA_VISIBLE_DEVICES=2 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler step --checkname 0414deepencoder_64_128_crop224_valid1 --lr 0.001 --batch-size 32 --epochs 600 > /workspace/experiments/results/0414deepencoder_1h1d_64_128_crop224_valid1.out &
+CUDA_VISIBLE_DEVICES=0 python /workspace/experiments/recognition/train.py --dataset minc --model seten --lr-scheduler step --checkname 0414deepencoder_64_128_crop224_valid1 --lr 0.001 --batch-size 4 --crop-size 256
+CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model seten --lr-scheduler step --checkname 0414deepencoder_64_128_crop224_valid1 --lr 0.025 --batch-size 128 --epochs 600 > /workspace/experiments/results/0415vit_crop256_valid1.out &
