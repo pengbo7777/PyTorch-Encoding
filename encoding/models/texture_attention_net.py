@@ -9,7 +9,7 @@ import torch.nn as nn
 from einops import rearrange, repeat
 
 from ..nn import Encoding, View, Normalize
-from .backbone import resnet50s, resnet101s, resnet152s
+from .backbone import resnet50s, resnet101s, resnet152s, swin_tiny_patch4_window7_224
 from .swin_transformer import *
 __all__ = ['getseten', 'get_att']
 
@@ -692,6 +692,69 @@ class Tsen_net(nn.Module):
         x = self.classifier(x)
         return x
 
+
+class swinTrans_encoder_net(nn.Module):
+    def __init__(self, nclass, backbone='swin_transformer'):
+        super(swinTrans_encoder_net, self).__init__()
+        self.backbone = backbone
+        if self.backbone == 'resnet50':
+            self.pretrained = resnet50s(pretrained=True, dilated=False)
+        elif self.backbone == 'resnet101':
+            self.pretrained = resnet101s(pretrained=True, dilated=False)
+        elif self.backbone == 'swin_transformer':
+            self.pretrained = swin_tiny_patch4_window7_224(pretrained=True, dilated=False)
+
+        else:
+            raise RuntimeError('unknown backbone: {}'.format(self.backbone))
+
+        n_codes1 = 64
+        # n_codes2 = 16
+        # n_codes3 = 32
+        # n_codes4 = 64
+
+        # 添加vlad模块
+        self.dim = 128
+        self.alpha = 1.0
+
+
+        self.head1 = nn.Sequential(
+            nn.Conv2d(2048, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            Encoding(D=128, K=n_codes1),
+            # View(-1, 128 * n_codes1),
+            # Normalize(),
+            # nn.Linear(128 * n_codes, nclass),
+        )
+
+
+        self.classifier = nn.Sequential(
+            View(-1, 128 * n_codes1),
+            Normalize(),
+            nn.Linear(128 * n_codes1, 512),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(512, nclass),
+
+        )
+        self.head = nn.Linear(self.pretrained.num_features, nclass) if nclass > 0 else nn.Identity()
+
+    def forward(self, x):
+        if isinstance(x, Variable):
+            _, _, h, w = x.size()
+        elif isinstance(x, tuple) or isinstance(x, list):
+            var_input = x
+            while not isinstance(var_input, Variable):
+                var_input = var_input[0]
+            _, _, h, w = var_input.size()
+        else:
+            raise RuntimeError('unknown input type: ', type(x))
+
+        x = self.pretrained.forward_features(x)
+        x = self.head(x)
+        return x
+
+
 import torch
 from torch import nn, einsum
 import torch.nn.functional as F
@@ -870,8 +933,8 @@ def getseten(nclass, backbone):
 def get_att(nclass, backbone):
     # net = Net(nclass, backbone)
     # net = Net_sum(nclass, backbone);:
-    net = Tsen_net(nclass, backbone)
-    # net = SwinTransformer(num_classes=nclass)
+    # net = Tsen_net(nclass, backbone)
+    net = swinTrans_encoder_net(nclass)
     return net
 
 

@@ -2,7 +2,7 @@
 import torch
 from .resnet import ResNet, Bottleneck
 from ..model_store import get_model_file
-from ..swin_transformer import *
+from .swin_transformer import *
 
 __all__ = ['resnet50s', 'resnet101s', 'resnet152s',
            'resnet50d', 'swin_tiny_patch4_window7_224']
@@ -63,9 +63,7 @@ def swin_tiny_patch4_window7_224(pretrained=True, **kwargs):
     if pretrained:
         path = '/workspace/experiments/swin_tiny_patch4_window7_224.pth'
         # path = 'D:\pengbo\code\swin_tiny_patch4_window7_224.pth'
-        model.load_state_dict(torch.load(path))
+        checkpoint = torch.load(path)
+        model.load_state_dict({k.replace('module.', ''): v for k, v in checkpoint['model'].items()})
     return model
 
-if __name__ == '__main__':
-    model = swin_tiny_patch4_window7_224(True)
-    print(model)
