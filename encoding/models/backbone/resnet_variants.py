@@ -61,7 +61,8 @@ def swin_tiny_patch4_window7_224(pretrained=True, **kwargs):
 
     model = SwinTransformer()
     if pretrained:
-        path = '/workspace/experiments/swin_tiny_patch4_window7_224.pth'
+        path='/workspace/experiments/results/runs/minc/att_patchnet/0416swin_crop224_valid1/model_best.pth.tar'
+        # path = '/workspace/experiments/swin_tiny_patch4_window7_224.pth'
         # path = 'D:\pengbo\code\swin_tiny_patch4_window7_224.pth'
         checkpoint = torch.load(path)
         model.load_state_dict({k.replace('module.', ''): v for k, v in checkpoint['model'].items()})

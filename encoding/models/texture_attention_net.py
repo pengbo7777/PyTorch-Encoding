@@ -11,6 +11,7 @@ from einops import rearrange, repeat
 from ..nn import Encoding, View, Normalize
 from .backbone import resnet50s, resnet101s, resnet152s, swin_tiny_patch4_window7_224
 from .swin_transformer import *
+
 __all__ = ['getseten', 'get_att']
 
 MIN_NUM_PATCHES = 16
@@ -716,9 +717,8 @@ class swinTrans_encoder_net(nn.Module):
         self.dim = 128
         self.alpha = 1.0
 
-
         self.head1 = nn.Sequential(
-            nn.Conv2d(2048, 128, 1),
+            nn.Conv2d(768, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             Encoding(D=128, K=n_codes1),
@@ -726,7 +726,6 @@ class swinTrans_encoder_net(nn.Module):
             # Normalize(),
             # nn.Linear(128 * n_codes, nclass),
         )
-
 
         self.classifier = nn.Sequential(
             View(-1, 128 * n_codes1),
@@ -750,8 +749,9 @@ class swinTrans_encoder_net(nn.Module):
         else:
             raise RuntimeError('unknown input type: ', type(x))
 
-        x = self.pretrained.forward_features(x)
-        x = self.head(x)
+        x = self.pretrained.forward_features(x)  # b, 49, 768 ->b,2048, 11, 11
+        x = rearrange(x, 'b (w h) d -> b d w h', w=7)
+        x = self.head1(x)
         return x
 
 
@@ -762,16 +762,19 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
+
 class PreNorm(nn.Module):
     def __init__(self, dim, fn):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.fn = fn
+
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
 
+
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout = 0.):
+    def __init__(self, dim, hidden_dim, dropout=0.):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
@@ -780,20 +783,22 @@ class FeedForward(nn.Module):
             nn.Linear(hidden_dim, dim),
             nn.Dropout(dropout)
         )
+
     def forward(self, x):
         return self.net(x)
 
+
 class Attention(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
         super().__init__()
-        inner_dim = dim_head *  heads
+        inner_dim = dim_head * heads
         project_out = not (heads == 1 and dim_head == dim)
 
         self.heads = heads
         self.scale = dim_head ** -0.5
 
-        self.attend = nn.Softmax(dim = -1)
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        self.attend = nn.Softmax(dim=-1)
+        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
 
         self.to_out = nn.Sequential(
             nn.Linear(inner_dim, dim),
@@ -802,8 +807,8 @@ class Attention(nn.Module):
 
     def forward(self, x):
         b, n, _, h = *x.shape, self.heads
-        qkv = self.to_qkv(x).chunk(3, dim = -1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = h), qkv)
+        qkv = self.to_qkv(x).chunk(3, dim=-1)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), qkv)
 
         dots = einsum('b h i d, b h j d -> b h i j', q, k) * self.scale
 
@@ -813,23 +818,27 @@ class Attention(nn.Module):
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
 
+
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
+                PreNorm(dim, Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout))
             ]))
+
     def forward(self, x):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
         return x
 
+
 class ViT(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool='cls', channels=3,
+                 dim_head=64, dropout=0., emb_dropout=0.):
         super().__init__()
         assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
         num_patches = (image_size // patch_size) ** 2
@@ -837,12 +846,12 @@ class ViT(nn.Module):
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
         self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_size, p2 = patch_size),
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_size, p2=patch_size),
             nn.Linear(patch_dim, dim),
         )
         self.resize = nn.Sequential(
             # Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_size, p2=patch_size),
-            Rearrange('b (h p) d  -> b h p d', p=patch_size ),
+            Rearrange('b (h p) d  -> b h p d', p=patch_size),
             # nn.Linear(patch_dim, dim),
         )
 
@@ -866,7 +875,7 @@ class ViT(nn.Module):
         # print(x.shape)
         b, n, _ = x.shape
 
-        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b = b)
+        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b=b)
         x = torch.cat((cls_tokens, x), dim=1)
         # print(x.shape)
         # print("self.pos_embedding[:, :(n + 1)].shape")
@@ -878,7 +887,7 @@ class ViT(nn.Module):
         x = self.transformer(x)
         # print(x.shape)
         # print(x[:, 0].shape)
-        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
 
         x = self.to_latent(x)
         # print(x.shape)
@@ -886,6 +895,8 @@ class ViT(nn.Module):
         # x2 = self.resize(x2)
         # print(x2.shape)
         return self.mlp_head(x)
+
+
 # if __name__ == '__main__':
 #     v = ViT(
 #         image_size=256,
@@ -906,9 +917,6 @@ class ViT(nn.Module):
 #     print(preds.shape)
 #     # x= torch.randn(2, 256, 1024)
 #     # Rearrange('b n d  -> b p1 p2 d', p1=16, p2=16)
-
-
-
 
 
 def getseten(nclass, backbone):
@@ -942,12 +950,17 @@ def test():
     net = Net_patch(nclass=3)
     # print(net)
     x = Variable(torch.randn(2, 3, 224, 224))
+    x2 = Variable(torch.randn(2, 49, 78))
+
     # x = Variable(torch.randn(64, 128))
     # x2 = Variable(torch.randn(64, 128))
 
     # x3 = x + 0.2* x2
 
     # print(x3.shape)
+    from einops import rearrange
+    x2 = rearrange(x2, 'b,(w,h),d -> b d w h', h=7)
+    print(x2.shape)
 
     y = net(x)
     print(y.shape)
