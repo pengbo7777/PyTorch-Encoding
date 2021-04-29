@@ -10,7 +10,8 @@ from einops import rearrange, repeat
 
 from ..nn import Encoding, View, Normalize
 from .backbone import resnet50s, resnet101s, resnet152s, swin_tiny_patch4_window7_224
-from .swin_transformer import *
+from .backbone.swin_transformer import *
+from .patch_transformer import *
 
 __all__ = ['getseten', 'get_att']
 
@@ -937,12 +938,12 @@ def getseten(nclass, backbone):
     )
     return net
 
-
 def get_att(nclass, backbone):
     # net = Net(nclass, backbone)
     # net = Net_sum(nclass, backbone);:
     # net = Tsen_net(nclass, backbone)
-    net = swinTrans_encoder_net(nclass)
+    # net = swinTrans_encoder_net(nclass)
+    net = Trans_patch_net(nclass)
     return net
 
 

@@ -86,4 +86,4 @@ CUDA_VISIBLE_DEVICES=0 python /workspace/experiments/recognition/train.py --data
 CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model seten --lr-scheduler step --checkname 0414deepencoder_64_128_crop224_valid1 --lr 0.025 --batch-size 128 --epochs 600 > /workspace/experiments/results/0415vit_crop256_valid1.out &
 
 CUDA_VISIBLE_DEVICES=0,1 python /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler step --checkname 0416swin_crop224_valid1 --lr 0.025 --batch-size 4 --epochs 600
-CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler step --checkname 0416swin_crop224_valid1 --lr 0.006 --batch-size 128 --epochs 600 > /workspace/experiments/results/0417swin_crop224_valid1.out &
+CUDA_VISIBLE_DEVICES=0,1 nohup python -u /workspace/experiments/recognition/train.py --dataset minc --model att_patchnet --lr-scheduler step --checkname 0427preswin_crop224_valid1 --lr 0.002 --batch-size 64 --epochs 600 > /workspace/experiments/results/0427preswin_crop224_valid1.out &

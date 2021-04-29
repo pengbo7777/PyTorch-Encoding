@@ -15,8 +15,10 @@ from ..nn import Encoding, View, Normalize
 from .backbone import resnet50s, resnet101s, resnet152s
 # from . import getseten
 from encoding.models.texture_attention_net import *
+from encoding.models.patch_transformer import *
 
-__all__ = ['DeepTen', 'get_deepten', 'get_deepten_resnet50_minc', 'get_seten','get_deepten_triplet','get_att_patchnet']
+
+__all__ = ['DeepTen', 'get_deepten', 'get_deepten_resnet50_minc', 'get_seten','get_deepten_triplet','get_att_patchnet','get_patch_transformer']
 
 
 class DeepTen(nn.Module):
@@ -148,8 +150,15 @@ def get_att_patchnet(dataset='pascal_voc', backbone='resnet50', pretrained=False
     #     model.load_state_dict(torch.load(
     #         get_model_file('deepten_%s_%s' % (backbone, acronyms[dataset]), root=root)))
     return model
-
-
+def get_patch_transformer(dataset='pascal_voc', backbone='resnet50', pretrained=False,
+              root='~/.encoding/models', **kwargs):
+    from ..datasets import datasets, acronyms
+    model = get_patch_transformer(datasets[dataset.lower()].NUM_CLASS, backbone=backbone)
+    # if pretrained:
+    #     from .model_store import get_model_file
+    #     model.load_state_dict(torch.load(
+    #         get_model_file('deepten_%s_%s' % (backbone, acronyms[dataset]), root=root)))
+    return model
 def get_deepten_resnet50_minc(pretrained=False, root='~/.encoding/models', **kwargs):
     r"""DeepTen model from the paper `"Deep TEN: Texture Encoding Network"
     <https://arxiv.org/pdf/1612.02844v1.pdf>`_

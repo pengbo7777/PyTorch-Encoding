@@ -32,6 +32,7 @@ models = {
     'seten': get_seten,
     'att_patchnet': get_att_patchnet,
     'deepten_triplet':get_deepten_triplet,
+    'patch_transformer':get_patch_transformer,
     # segmentation resnet models
     'encnet_resnet101s_coco': get_encnet_resnet101_coco,
     'fcn_resnet50s_pcontext': get_fcn_resnet50_pcontext,
